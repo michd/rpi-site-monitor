@@ -1,0 +1,131 @@
+#!/bin/bash
+# monitor
+
+# Usage: `sudo ./monitor` (or run as root)
+# You can add -v for some logging, -vv for also logging which LEDs are being
+# used.
+# Ctrl-C to exit.
+# To launch it into the background: `sudo ./monitor &`
+
+# Configure LED pins and sites to check below.
+
+# Interval in seconds between all checks
+# Note: this is wait time after all checks have been completed.
+# Ping response and curl connection time make the cycle longer,
+# So be aware this number is not "execute every x seconds".
+INTERVAL=60
+
+# How long to wait before curl connecting gives up, in seconds
+CURL_TIMEOUT=10
+
+# Configure LEDs, hosts and sites below.
+# LED_G[x] is the GPIO pin number for the Green LED,
+# LED_R[x] is the GPIO pin number for the Red LED.
+# This assumes dual color LEDs with red and green in one package.
+# Having red and green on at the same time creates yellow.
+
+# HOST[x] is the host which will be pinged
+# URL[x] is the url which will be checked for http status
+# Redirects will be followed, and only 200 and 204 are seen as OK
+
+LED_G[0]=21
+LED_R[0]=20
+HOST[0]="google.com"
+URL[0]="google.com"
+
+LED_G[1]=19
+LED_R[1]=26
+HOST[1]="en.wikipedia.org"
+URL[1]="en.wikipedia.org/wiki/Main_Page"
+
+LED_G[2]=13
+LED_R[2]=16
+HOST[2]="example.com"
+URL[2]="example.com"
+
+# Add as many as you have GPIO pins for here, make sure you don't miss numbers
+# in the sequence though.
+
+#################################################
+##### Don't change anything below this line #####
+#################################################
+
+VERBOSE=$1
+
+cleanup () {
+	echo "Exiting..."
+
+	# Turn the LEDs off
+	_i=0
+	for _j in "${LED_G[@]}"; do
+		python indicate.py ${LED_G[$_i]} ${LED_R[$_i]} off
+		_i=$_i+1
+	done;
+
+	exit
+}
+
+# Ensure we run cleanup before exiting with ^C
+trap "cleanup" SIGINT SIGTERM
+
+verboseLog () {
+	_level=$1
+	_msg=$2
+	
+	if [ "$VERBOSE" = "-vv" ]; then
+		echo $_msg
+	elif [ "$VERBOSE" = "-v" ] && [ "$_level" = "1" ]; then
+		echo $_msg
+	fi
+}
+
+checkStatus () {
+	_led_g=$1
+	_led_r=$2
+	_host=$3
+	_url=$4
+
+	verboseLog 2 "Using LED pins: Green: $_led_g Red: $_led_r"
+	verboseLog 1 "Pinging $_host..."
+
+	if [ "$(ping $_host -c 1 1>/dev/null 2>/dev/null && echo up || echo down)" = "up" ]; then
+		verboseLog 1 "Got response."
+		verboseLog 1 "Checking HTTP status of $_url..."
+		
+		_http_status="$(curl -sL -w %{http_code} --connect-timeout $CURL_TIMEOUT $_url -o /dev/null)" 
+		
+		verboseLog 1 "Status: $_http_status"
+		
+		if [ "$_http_status" = "200" ] || [ "$_http_status" = "204" ]; then
+			verboseLog 2 "Setting LED to green."
+			python indicate.py $_led_r $_led_g off
+			sleep 0.05
+			python indicate.py $_led_r $_led_g green
+		else
+			verboseLog 2 "Setting LED to yellow."
+			python indicate.py $_led_r $_led_g off
+			sleep 0.05
+			python indicate.py $_led_r $_led_g yellow
+		fi
+	else
+		verboseLog 1 "No response / unknown host."
+		verboseLog 2 "Setting LED to red."
+		python indicate.py $_led_r $_led_g off
+		sleep 0.05
+		python indicate.py $_led_r $_led_g red
+	fi
+}
+
+while :
+do
+	_i=0
+	for _j in "${LED_G[@]}"; do
+		verboseLog 1 "-----"
+		checkStatus ${LED_G[$_i]} ${LED_R[$_i]} ${HOST[$_i]} ${URL[$_i]}
+		_i=$_i+1
+	done;
+	verboseLog 1 "##########"
+	verboseLog 1 ""
+	sleep $INTERVAL
+done
+
