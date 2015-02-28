@@ -25,8 +25,10 @@ else:
 - Hardware:
   - A Raspberry pi set up with networking
   - Some red+green dual color LEDs (or just a red and green LED per site)
-  - NPN transistors to drive the LEDs
+  - NPN transistors to drive the LEDs (BC547-B will do fine)
   - Some resistors (I used 2x 1k Ohm + 2x 220 Ohm per dual colour LED)
+  
+  Refer to the eagle folder for a schematic and a PCB design with 5 LEDs set up.
 - Software:
   - Python
   - Python RPi.GPIO
