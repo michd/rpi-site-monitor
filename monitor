@@ -7,58 +7,17 @@
 # Ctrl-C to exit.
 # To launch it into the background: `sudo ./monitor &`
 
-# Configure LED pins and sites to check below.
-
-# Interval in seconds between all checks
-# Note: this is wait time after all checks have been completed.
-# Ping response and curl connection time make the cycle longer,
-# So be aware this number is not "execute every x seconds".
-INTERVAL=60
-
-# How long to wait before curl connecting gives up, in seconds
-CURL_TIMEOUT=10
-
-# Configure LEDs, hosts and sites below.
-# LED_G[x] is the GPIO pin number for the Green LED,
-# LED_R[x] is the GPIO pin number for the Red LED.
-# This assumes dual color LEDs with red and green in one package.
-# Having red and green on at the same time creates yellow.
-
-# HOST[x] is the host which will be pinged
-# URL[x] is the url which will be checked for http status
-# Redirects will be followed, and only 200 and 204 are seen as OK
-
-LED_G[0]=21
-LED_R[0]=20
-HOST[0]="google.com"
-URL[0]="google.com"
-
-LED_G[1]=19
-LED_R[1]=26
-HOST[1]="en.wikipedia.org"
-URL[1]="en.wikipedia.org/wiki/Main_Page"
-
-LED_G[2]=13
-LED_R[2]=16
-HOST[2]="example.com"
-URL[2]="example.com"
-
-# Add as many as you have GPIO pins for here, make sure you don't miss numbers
-# in the sequence though.
-
 #################################################
 ##### Don't change anything below this line #####
 #################################################
-
-VERBOSE=$1
 
 cleanup () {
 	echo "Exiting..."
 
 	# Turn the LEDs off
 	_i=0
-	for _j in "${LED_G[@]}"; do
-		python indicate.py ${LED_G[$_i]} ${LED_R[$_i]} off
+	for _j in "${led_g[@]}"; do
+		python indicate.py ${led_g[$_i]} ${led_r[$_i]} off
 		_i=$_i+1
 	done;
 
@@ -92,7 +51,7 @@ checkStatus () {
 		verboseLog 1 "Got response."
 		verboseLog 1 "Checking HTTP status of $_url..."
 		
-		_http_status="$(curl -sL -w %{http_code} --connect-timeout $CURL_TIMEOUT $_url -o /dev/null)" 
+		_http_status="$(curl -sL -w %{http_code} --connect-timeout $curl_timeout $_url -o /dev/null)" 
 		
 		verboseLog 1 "Status: $_http_status"
 		
@@ -116,16 +75,39 @@ checkStatus () {
 	fi
 }
 
+# Check for config file param
+if [ -f "$1" ]; then
+  CONFIG_FILE=$1
+elif [ -f "$2" ]; then
+  CONFIG_FILE=$2
+else
+  CONFIG_FILE="default.conf"
+fi
+
+# Check for verbose param
+if [ "$1" = "-v" ] || [ "$1" = "-vv" ]; then
+  VERBOSE=$1
+elif [ "$2" = "-v" ] || [ "$2" = "-vv" ]; then
+  VERBOSE=$2
+fi
+
+source "$CONFIG_FILE"
+
+verboseLog 1 "Starting to check ${#host[@]} websites..."
+verboseLog 1 "Using configuration from file $CONFIG_FILE"
+verboseLog 1 "Waiting $interval seconds between checks"
+verboseLog 1 ""
+
 while :
 do
 	_i=0
-	for _j in "${LED_G[@]}"; do
+	for _j in "${led_g[@]}"; do
 		verboseLog 1 "-----"
-		checkStatus ${LED_G[$_i]} ${LED_R[$_i]} ${HOST[$_i]} ${URL[$_i]}
+		checkStatus ${led_g[$_i]} ${led_r[$_i]} ${host[$_i]} ${url[$_i]}
 		_i=$_i+1
 	done;
 	verboseLog 1 "##########"
 	verboseLog 1 ""
-	sleep $INTERVAL
+	sleep $interval
 done
 
