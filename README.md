@@ -32,8 +32,6 @@ else:
   - Python RPi.GPIO
   - Curl
 
----
-
 ## Usage
 
 Clone or download the repository, wire up the electronics. In a terminal on your RPi, go to the directory with this code, and run:
@@ -50,13 +48,20 @@ chmod +x monitor
 
 and try running it again. It won't produce any output, and will keep running until you hit Ctrl-C.
 
+### Customise your configuration
+
+By defauly, site monitor uses, you guessed it, default.conf for the configuration. This file contains documented settings and three example websites to status check. To use it for your own sites, make a copy of `default.conf`, and edit it with your favorite text editor. Then, run monitor, specifying your new config as an argument:
+
+```
+sudo ./monitor my-config.conf
+```
+
+### Console output
 To see the status is of the things you're testing, run it with `-v` or `-vv` for more detail:
 
 ```
 sudo ./monitor -v
 ```
-
-Once you are satisfied your setup works, you can edit `monitor` with your favourite text editor to configure which sites are monitored, and which GPIO pins are used. You can add as many sites(and LEDs) as you have GPIO pins for.
 
 ## To do
 
