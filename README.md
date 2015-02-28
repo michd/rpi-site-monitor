@@ -60,5 +60,4 @@ Once you are satisfied your setup works, you can edit `monitor` with your favour
 
 ## To do
 
-- Design the LED circuit schematic
-- Design a Printed Circuit Board
+See [Issues](https://github.com/michd/rpi-site-monitor/issues) on GitHub.
