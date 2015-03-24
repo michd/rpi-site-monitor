@@ -5,17 +5,16 @@
 // Note: width refers to X axis, depth to Y, height to Z
 
 // Edit these parameters for your own board dimensions
+
+ceiling_distance_to_board = 7;
+
 wall_thickness = 2;
 floor_thickness = 2;
 ceiling_thickness = 2;
 
-bottom_wall_height = 10;
-top_wall_height = 5;
-
-// Total height of box = floor_thickness + ceiling_thickness + bottom_wall_height + top_wall_height
 
 hole_spacing_x = 98.5;
-hole_spacing_y = 19;
+hole_spacing_y = 24.1;
 
 hole_diameter = 2.5;
 standoff_diameter = 4;
@@ -24,6 +23,11 @@ standoff_diameter = 4;
 // to leave room for solderings and whatnot
 standoff_height = 5;
 board_thickness = 1.65;
+
+
+bottom_wall_height = standoff_height;
+top_wall_height = ceiling_distance_to_board + board_thickness;
+// Total height of box = floor_thickness + ceiling_thickness + bottom_wall_height + top_wall_height
 
 // padding between standoff and wall
 padding_left = 3;
@@ -34,6 +38,18 @@ padding_front = 3;
 // ridge where bottom and top off box can overlap
 // Make sure this isn't less than top_wall_height
 ridge_height = 2;
+
+// Project-specific params
+led_diameter = 5;
+first_led_offset_x = 10.2;
+first_led_offset_y = 2;
+led_origin_spacing = 19;
+num_leds = 5;
+
+connector_origin_x = 48.3;
+connector_origin_y = 20.3;
+connector_width = 20;
+connector_depth = 7.5;
 
 //-------------------------------------------------------------------
 
@@ -263,7 +279,48 @@ module top_case() {
             pin_receiver();
     }
     
-    box();
+    module led_holes() {
+        base_offset_x = wall_thickness + padding_left + standoff_diameter / 2;
+        base_offset_y = wall_thickness + padding_front + standoff_diameter / 2 + hole_spacing_y;
+        
+        module hole() {
+            translate([
+                0,
+                0,
+                ceiling_thickness / 2])
+                    cylinder(
+                        r = led_diameter / 2,
+                        h = ceiling_thickness + 2,
+                        center = true,
+                        $fn = 20);    
+        }
+        
+        for (i = [0 : num_leds - 1]) {
+            translate([
+                base_offset_x + first_led_offset_x + i * led_origin_spacing,
+                base_offset_y - first_led_offset_y,
+                0])
+                hole();
+        }
+        
+    }
+    
+    module connector_hole() {
+        base_offset_x = wall_thickness + padding_left + standoff_diameter / 2;
+        base_offset_y = wall_thickness + padding_front + standoff_diameter / 2 + hole_spacing_y;
+        translate([
+            base_offset_x + connector_origin_x - connector_width / 2,
+            base_offset_y - connector_origin_y - connector_depth / 2,
+            - ceiling_thickness / 2])
+            cube([connector_width, connector_depth, ceiling_thickness * 2]);
+    }
+    
+    difference() {
+        box();
+        led_holes();
+        connector_hole();
+    }
+        
     pcb_holder();
 }
 
